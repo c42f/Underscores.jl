@@ -8,9 +8,13 @@ placeholders are
   `x->x+1` may not be meaningful).
 * Brevity. For example `_+1`.
 
+
+## API and Examples
+
 ```@docs
 @_
 ```
+
 
 ## Design
 
@@ -21,7 +25,7 @@ clutter and improved clarity. This is particularly relevant because use of a
 macro in a function argument list tends to need additional parenentheses.
 Compare to the obvious alternatives:
 
-```
+```julia
     @_ map(_+1, A)
     map(@_(_+1), A)
     map(x->x+1, A)
@@ -32,7 +36,7 @@ pipelines where anonymous functions are generally used as arguments to filter
 and map. This works in a particularly nice way for lazy versions of `Filter`
 and `Map`, allowing expressions such as
 
-```
+```julia
     @_  data         |>
         Filter(_>10) |>
         Map(_+1)
@@ -42,7 +46,7 @@ Somewhat of a design conundrum is how to make this work more natively with
 non-lazy `filter` and `map`. It might make sense to support double underscores
 to "escape an extra level", allowing things such as
 
-```
+```julia
     @_  data             |>
         filter(_>10, __) |>
         map(_+1, __)
