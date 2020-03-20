@@ -1,0 +1,15 @@
+name = "Underscore"
+uuid = "d9a01c3f-67ce-4d8c-9b55-35f6e4050bb1"
+authors = ["Chris Foster <chris42f@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
