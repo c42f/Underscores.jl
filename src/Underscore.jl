@@ -68,7 +68,7 @@ equivalent to `@_ map((x,y)->x+2^y, A)`.
 
 Numbered placeholders `_1,_2,...` may be used if you need to reorder,repeat or
 omit arguments. For example `@_ map(_2+_1, A, B)` is equivalent to
-`map((x,y)->(y,x), A, B)`.
+`map((x,y)->y+x, A, B)`.
 
 Piping and composition chains are treated as a special case where the
 replacement recurses into sub-expressions. That is, the following two are
