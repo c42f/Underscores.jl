@@ -1,6 +1,6 @@
-# Underscore.jl
+# Underscores.jl
 
-Underscore provides a single macro `@_` to make it easier to pass closures to
+Underscores provides a single macro `@_` to make it easier to pass closures to
 higher order functions. This is done by translating "placeholder expressions"
 containing placeholders `_` or `_1,_2,...` . The key benefits of `_`
 placeholders are

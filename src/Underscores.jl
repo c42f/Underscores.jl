@@ -1,4 +1,4 @@
-module Underscore
+module Underscores
 
 export @_
 

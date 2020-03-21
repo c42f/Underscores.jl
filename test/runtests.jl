@@ -1,7 +1,7 @@
-using Underscore
+using Underscores
 using Test
 
-@testset "Underscore Examples" begin
+@testset "Underscores Examples" begin
     @test [1,"a",2.0] == @_ map(_, [1,"a",2.0])
 
     strs = ["ab", "ca", "ad"]
@@ -28,9 +28,9 @@ using Test
     @test [1] == @_(Map(_.y) ∘ Filter(startswith(_.x, "a")))(data)
 end
 
-@testset "Underscore lowering" begin
+@testset "Underscores lowering" begin
     cleanup! = Base.remove_linenums!
-    lower(ex) = cleanup!(Underscore.lower_underscores(ex))
+    lower(ex) = cleanup!(Underscores.lower_underscores(ex))
 
     @test lower(:(f(_))) == cleanup!(:(f((_1,)->_1)))
     @test lower(:(f(g(h(_))))) == cleanup!(:(f(((_1,)->g(h(_1))))))
