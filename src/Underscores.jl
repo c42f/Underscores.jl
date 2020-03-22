@@ -2,54 +2,62 @@ module Underscores
 
 export @_
 
-argname(i) = Symbol("_", i)
-
-function _toclosure(nargs, numbered_nargs, ex)
+function _replacesyms(sym_map, ex)
     if ex isa Symbol
-        if ex === :_
-            nargs[] += 1
-            arg = argname(nargs[])
-            return arg
-        elseif occursin(r"^_[0-9]+$", string(ex))
-            n = parse(Int, string(ex)[2:end])
-            numbered_nargs[] = max(numbered_nargs[], n)
-            return argname(n)
-        else
-            return ex
-        end
+        return sym_map(ex)
     elseif ex isa Expr
         if ex.head == :quote || ex.head == :inert || ex.head == :meta
             return ex
         end
-        args = map(e->_toclosure(nargs, numbered_nargs, e), ex.args)
+        args = map(e->_replacesyms(sym_map, e), ex.args)
         return Expr(ex.head, args...)
     else
         return ex
     end
 end
 
-function toclosure(ex)
-    nargs = Ref(0)
-    numbered_nargs = Ref(0)
-    body = _toclosure(nargs, numbered_nargs, ex)
-    if nargs[] > 0 && numbered_nargs[] > 0
-        throw(ArgumentError("Cannot mix plain and numbered `_` placeholders in `$ex`"))
+function add_closures(ex, prefix, pattern)
+    plain_nargs = 0
+    numbered_nargs = 0
+    body = _replacesyms(ex) do sym
+        m = match(pattern, string(sym))
+        if m === nothing
+            sym
+        else
+            argnum_str = m[1]
+            if isempty(argnum_str)
+                plain_nargs += 1
+                argnum = plain_nargs
+            else
+                argnum = parse(Int, argnum_str)
+                numbered_nargs = max(numbered_nargs, argnum)
+            end
+            Symbol(prefix, argnum)
+        end
     end
-    n = max(nargs[], numbered_nargs[])
-    if n == 0
+    if plain_nargs > 0 && numbered_nargs > 0
+        throw(ArgumentError("Cannot mix plain and numbered `$prefix` placeholders in `$ex`"))
+    end
+    nargs = max(plain_nargs, numbered_nargs)
+    if nargs == 0
         return ex
     end
-    argnames = map(argname, 1:n)
+    argnames = map(i->Symbol(prefix,i), 1:nargs)
     return :(($(argnames...),) -> $body)
 end
 
 function lower_underscores(ex)
     if ex isa Expr && ex.head == :call && length(ex.args) > 1
-        name = ex.args[1]
-        if name == :|> || name == :<| || name == :∘
-            Expr(ex.head, name, map(lower_underscores, ex.args[2:end])...)
+        funcname = ex.args[1]
+        if funcname == :|> || funcname == :<| || funcname == :∘
+            return Expr(ex.head, funcname,
+                        map(lower_underscores, ex.args[2:end])...)
         else
-            Expr(ex.head, name, map(toclosure, ex.args[2:end])...)
+            # replace _
+            ex2 = Expr(ex.head, funcname,
+                       map(e->add_closures(e, "_", r"^_([0-9]*)$"), ex.args[2:end])...)
+            # replace __
+            return add_closures(ex2, "__", r"^__([0-9]*)$")
         end
     else
         return ex
@@ -77,6 +85,13 @@ equivalent:
     @_ f1(ex1)  |>     f2(ex1)
     @_(f1(ex1)) |>  @_(f2(ex1))
 
+The placeholder `__` (and numbered versions `__1,__2,...`) may be used to
+expand the closure scope to the whole expression. That is, the following are
+equivalent:
+
+    @_ func(a,__)
+    x->func(a,x)
+
 # Examples
 
 `@_` can be very convenient for simple mapping operations in cases where
@@ -90,7 +105,8 @@ julia> @_ map(_[end-1],  [[1,2,3], [4,5]])
  4
 ```
 
-If you need to repeat an argument more than once the numbered form can be useful:
+If you need to repeat an argument more than once the numbered form can be
+useful:
 
 ```jldoctest
 julia> @_ map(_1^_1,  [1,2,3])
@@ -113,15 +129,13 @@ julia> @_ filter(!startswith(_.x, "a"), data)
  (x = "c", y = 3)
 ```
 
-Combined with a lazy Map and Filter it gives super simple but convenient
-manipulation of tabular data:
+It's especially useful when combined with double underscore placeholders `__`
+and piping syntax. Think of `__` as the table, and `_` as an individual row:
 
 ```jldoctest
-julia> Filter(f) = x->filter(f,x);   Map(f) = x->map(f,x);
-
 julia> @_ data |>
-          Filter(!startswith(_.x, "a")) |>
-          Map(_.y)
+          filter(!startswith(_.x, "a"), __) |>
+          map(_.y, __)
 2-element Array{Int64,1}:
  2
  3
