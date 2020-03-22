@@ -1,5 +1,10 @@
 module Underscores
 
+@doc let path = joinpath(dirname(@__DIR__), "README.md")
+    include_dependency(path)
+    replace(read(path, String), "```julia" => "```jldoctest")
+end Underscores
+
 export @_
 
 function _replacesyms(sym_map, ex)
