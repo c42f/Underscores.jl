@@ -22,6 +22,9 @@ function _replacesyms(sym_map, ex)
 end
 
 function add_closures(ex, prefix, pattern)
+    if ex isa Expr && (ex.head == :kw || ex.head == :parameters)
+        return Expr(ex.head, map(e->add_closures(e,prefix,pattern), ex.args)...)
+    end
     plain_nargs = 0
     numbered_nargs = 0
     body = _replacesyms(ex) do sym

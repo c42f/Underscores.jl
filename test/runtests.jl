@@ -22,6 +22,10 @@ using Test
                     filter(startswith(_.x, "a"), __) |>
                     map(_.y, __)
 
+    @test [3,2,1] == @_ data |>
+                        sort(__, by=_.x, rev=true) |>
+                        map(_.y, __)
+
     @test [1] == (@_ map(_.y, __) ∘
                      filter(startswith(_.x, "a"), __))(data)
 
@@ -91,5 +95,9 @@ end
     @test lower(:(f(_, __) |> g(_, __))) ==
         cleanup!(:(((__1,)->f((_1,)->_1, __1)) |>
                    ((__1,)->g((_1,)->_1, __1))))
+
+    # Keyword arguments
+    @test lower(:(f(x, k=_+1))) == cleanup!(:(f(x, k=((_1,)->_1+1))))
+    @test lower(:(f(x; k=_+1))) == cleanup!(:(f(x; k=((_1,)->_1+1))))
 end
 
