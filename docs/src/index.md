@@ -83,24 +83,34 @@ julia> @_ table |>
 ## Design
 
 Underscore syntax for Julia has been discussed at great length in
-[#24990](https://github.com/JuliaLang/julia/pull/24990) and elsewhere in the
+[#24990](https://github.com/JuliaLang/julia/pull/24990),
+[#5571](https://github.com/JuliaLang/julia/issues/5571) and elsewhere in the
 Julia community. The design for Underscores.jl grew out of this discussion.
 A great many packages have had a go at macros for this, including at least
-`Lazy.jl`, `LightQuery.jl`, `LambdaFn.jl`, `Query.jl` and
-`SplitApplyCombine.jl`.
+[`ChainMap.jl`](https://github.com/bramtayl/ChainMap.jl),
+[`ChainRecursive.jl`](https://github.com/bramtayl/ChainRecursive.jl),
+[`FunctionalData.jl`](https://github.com/rened/FunctionalData.jl),
+[`Hose.jl`](https://github.com/FNj/Hose.jl/),
+[`Lazy.jl`](https://github.com/MikeInnes/Lazy.jl),
+[`LightQuery.jl`](https://github.com/bramtayl/LightQuery.jl),
+[`LambdaFn.jl`](https://github.com/haberdashPI/LambdaFn.jl),
+[`MagicUnderscores.jl`](https://github.com/c42f/MagicUnderscores.jl)
+[`Pipe.jl`](https://github.com/oxinabox/Pipe.jl),
+[`Query.jl`](https://github.com/queryverse/Query.jl) and
+[`SplitApplyCombine.jl`](https://github.com/JuliaData/SplitApplyCombine.jl)
 
 One design difficulty is that much of the package work has focussed on the
-tabular data manipulation scenario. However, as a language feature a compelling
-general solution for `_` placeholders must have wider appeal.
+piping and tabular data manipulation scenario. However as a language feature a
+compelling general solution for `_` placeholders needs wider appeal.
 
 Starting with the need to be useful outside of tabular data manipulation, we
 observe that anonymous functions are generally passed directly to another
 "outer" function. For example, in `map(x->x*y, A)` the outer function is `map`.
 However, putting `@_` inside the function call leads to a lot of visual
-clutter, especially because it often must be parenthesized to avoid consuming
-the remaining arguments to `map`. However, one can place the `@_` on the
-function *receiving* the closure which results in less visual clutter and
-improved clarity. Compare:
+clutter, especially because it needs to be parenthesized to avoid consuming the
+remaining arguments to `map`. However, one can place the `@_` on the function
+*receiving* the closure which results in less visual clutter and improved
+clarity. Compare:
 
 ```julia
 @_ map(_+1, A)   # This design

@@ -7,11 +7,13 @@ end Underscores
 
 export @_
 
+isquoted(ex) = ex isa Expr && ex.head in (:quote, :inert, :meta)
+
 function _replacesyms(sym_map, ex)
     if ex isa Symbol
         return sym_map(ex)
     elseif ex isa Expr
-        if ex.head == :quote || ex.head == :inert || ex.head == :meta
+        if isquoted(ex)
             return ex
         end
         args = map(e->_replacesyms(sym_map, e), ex.args)
@@ -54,18 +56,33 @@ function add_closures(ex, prefix, pattern)
     return :(($(argnames...),) -> $body)
 end
 
+replace_(ex)  = add_closures(ex, "_", r"^_([0-9]*)$")
+replace__(ex) = add_closures(ex, "__", r"^__([0-9]*)$")
+
+# In principle this can be extended locally by a package for use within the
+# package and for prototyping purposes. However note that this will interact
+# badly with precompilation. (If it makes sense we could fix this per-package
+# by storing a per-module _pipeline_ops in the module using @_.)
+const _pipeline_ops = [:|>, :<|, :∘]
+
 function lower_underscores(ex)
-    if ex isa Expr && ex.head == :call && length(ex.args) > 1
-        funcname = ex.args[1]
-        if funcname == :|> || funcname == :<| || funcname == :∘
-            return Expr(ex.head, funcname,
+    if ex isa Expr
+        if isquoted(ex)
+            return ex
+        elseif ex.head == :call && length(ex.args) > 1 &&
+               ex.args[1] in _pipeline_ops
+            # Special case for pipelining and composition operators
+            return Expr(ex.head, ex.args[1],
                         map(lower_underscores, ex.args[2:end])...)
+        elseif ex.head == :.       && length(ex.args) == 2 &&
+               ex.args[2] isa Expr && ex.args[2].head == :tuple
+            # Broadcast calls treated as normal calls for underscore lowering
+            return replace__(Expr(ex.head, ex.args[1],
+                                  Expr(:tuple, map(replace_, ex.args[2].args)...)))
         else
-            # replace _
-            ex2 = Expr(ex.head, funcname,
-                       map(e->add_closures(e, "_", r"^_([0-9]*)$"), ex.args[2:end])...)
-            # replace __
-            return add_closures(ex2, "__", r"^__([0-9]*)$")
+            # For other syntax, replace _ in args individually and __ over the
+            # entire expression.
+            return replace__(Expr(ex.head, map(replace_, ex.args)...))
         end
     else
         return ex

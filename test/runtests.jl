@@ -53,6 +53,9 @@ end
     # __
     @test lower(:(f(__))) == cleanup!(:((__1,)->f(__1)))
     @test lower(:(f(g(h(__))))) == cleanup!(:((__1,)->f(g(h(__1)))))
+    # Tricky case when function name is itself an underscore expression.
+    # We want the function name to be also expanded here.
+    @test lower(:(g(_)(x))) == cleanup!(:(((_1,)->g(_1))(x)))
 
     # Multiple arguments
     # _
@@ -99,5 +102,16 @@ end
     # Keyword arguments
     @test lower(:(f(x, k=_+1))) == cleanup!(:(f(x, k=((_1,)->_1+1))))
     @test lower(:(f(x; k=_+1))) == cleanup!(:(f(x; k=((_1,)->_1+1))))
+
+    # Broadcast notation
+    @test lower(:(f.(_)))   == cleanup!(:(f.((_1,)->_1)))
+    @test lower(:(f.(_,_))) == cleanup!(:(f.((_1,)->_1, (_1,)->_1)))
+    @test lower(:(f.(__)))  == cleanup!(:((__1,)->f.(__1)))
+
+    # Random sample of other syntax
+    @test lower(:([_]))  == cleanup!(:([(_1,)->_1]))
+    @test lower(:((f(_), g(_))))  == cleanup!(:(((_1,)->f(_1)), ((_1,)->g(_1))))
+    @test lower(:([__])) == cleanup!(:((__1,)->[__1]))
+    @test lower(:(__.x)) == cleanup!(:((__1,)->__1.x))
 end
 
