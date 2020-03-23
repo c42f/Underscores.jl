@@ -1,12 +1,8 @@
 # Underscores.jl
 
-Underscores provides a single macro `@_` to make it easier to pass closures to
-higher order functions. This is done by translating "placeholder expressions"
-containing placeholders `_` or `_1,_2,...` . The key benefits of `_`
-placeholders are
-* They avoid the need to come up with argument names (for example, the `x` in
-  `x->x+1` may not be meaningful).
-* Brevity. For example `_+1`.
+`Underscores` provides simple syntax for passing closures to functions with a
+macro `@_`. This enables use like `@_ map(_+1, xs)` and `@_ people |>
+filter(_.age > 40, __) |> map(_.name, __)`.
 
 ## Tutorial
 
@@ -94,10 +90,15 @@ A great many packages have had a go at macros for this, including at least
 [`Lazy.jl`](https://github.com/MikeInnes/Lazy.jl),
 [`LightQuery.jl`](https://github.com/bramtayl/LightQuery.jl),
 [`LambdaFn.jl`](https://github.com/haberdashPI/LambdaFn.jl),
-[`MagicUnderscores.jl`](https://github.com/c42f/MagicUnderscores.jl)
+[`MagicUnderscores.jl`](https://github.com/c42f/MagicUnderscores.jl),
 [`Pipe.jl`](https://github.com/oxinabox/Pipe.jl),
 [`Query.jl`](https://github.com/queryverse/Query.jl) and
 [`SplitApplyCombine.jl`](https://github.com/JuliaData/SplitApplyCombine.jl)
+
+The key benefits of `_` placeholders are
+* They avoid the need to come up with argument names (for example, the `x` in
+  `x->x+1` may not be meaningful).
+* Brevity. For example `_+1`.
 
 One design difficulty is that much of the package work has focussed on the
 piping and tabular data manipulation scenario. However as a language feature a
