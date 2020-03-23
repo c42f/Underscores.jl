@@ -107,6 +107,7 @@ end
     @test lower(:(f.(_)))   == cleanup!(:(f.((_1,)->_1)))
     @test lower(:(f.(_,_))) == cleanup!(:(f.((_1,)->_1, (_1,)->_1)))
     @test lower(:(f.(__)))  == cleanup!(:((__1,)->f.(__1)))
+    @test lower(:((_).(x)))  == cleanup!(:(((_1,)->_1).(x)))
 
     # Random sample of other syntax
     @test lower(:([_]))  == cleanup!(:([(_1,)->_1]))

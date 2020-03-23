@@ -77,7 +77,7 @@ function lower_underscores(ex)
         elseif ex.head == :.       && length(ex.args) == 2 &&
                ex.args[2] isa Expr && ex.args[2].head == :tuple
             # Broadcast calls treated as normal calls for underscore lowering
-            return replace__(Expr(ex.head, ex.args[1],
+            return replace__(Expr(ex.head, replace_(ex.args[1]),
                                   Expr(:tuple, map(replace_, ex.args[2].args)...)))
         else
             # For other syntax, replace _ in args individually and __ over the
