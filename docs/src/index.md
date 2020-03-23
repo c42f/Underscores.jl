@@ -1,8 +1,14 @@
 # Underscores.jl
 
-`Underscores` provides simple syntax for passing closures to functions with a
-macro `@_`. This enables use like `@_ map(_+1, xs)` and `@_ people |>
-filter(_.age > 40, __) |> map(_.name, __)`.
+`Underscores` provides simple syntax for passing closures to functions by
+interpreting `_` *placeholders* as anonymous function arguments. For example
+`@_ map(_+1, xs)` to mean `map(x->x+1, xs)`.
+
+This is helpful when you want to write anonymous functions succinctly without
+naming the arguments, for example in data processing pipelines such as
+```julia
+@_ people |> filter(_.age > 40, __) |> map(_.name, __)
+```
 
 ## Tutorial
 
@@ -43,8 +49,8 @@ julia> @_ map("X $_2 $(repeat(_1,_2))", ["a","b","c"], [1,2,3])
 
 ### Tabular data
 
-`@_` can be particularly helpful for manipulating tabular data, especially when
-combined with piping. Let's filter a list of named tuples:
+`@_` can be helpful for manipulating tabular data, especially when combined
+with piping. Let's filter a list of named tuples:
 
 ```jldoctest
 julia> table = [(x="a", y=1),
