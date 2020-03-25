@@ -95,33 +95,36 @@ end
 Convert `ex1,ex2,...` into anonymous functions when they have `_` placeholders,
 and *pass them along* to `func`.
 
-When multiple `_` are present in a single sub-expression they become successive
-arguments to a single anonymous function. That is, `@_ map(_+2^_, A)` is
-equivalent to `@_ map((x,y)->x+2^y, A)`.
+The detailed rules are:
+1. The placeholder `_` expands to an anonymous function which is passed to the
+   outermost expression.
+2. When multiple `_` are present in a single sub-expression they become successive
+   arguments to the anonymous function.
+3. Numbered placeholders `_1,_2,...` may be used if you need to reorder, repeat
+   or omit arguments.
+4. The placeholder `__` (and numbered versions `__1,__2,...`) expands the
+   closure scope to the whole expression.
+5. Piping and composition chains with `|>,<|,∘` are treated as a special case
+   where the replacement recurses into sub-expressions.
 
-Numbered placeholders `_1,_2,...` may be used if you need to reorder,repeat or
-omit arguments. For example `@_ map(_2+_1, A, B)` is equivalent to
-`map((x,y)->y+x, A, B)`.
+These rules imply the following equivalences
 
-Piping and composition chains are treated as a special case where the
-replacement recurses into sub-expressions. That is, the following two are
-equivalent:
+| Expression                 |  Rules  | Meaning                        |
+|:-------------------------- |:------- |:------------------------------ |
+| `@_ map(_+1, a)`           | (1)     | `map(x->x+1, a)`               |
+| `@_ map(_+2^_, a)`         | (1,2)   | `map((x,y)->x+2^y, a)`         |
+| `@_ map(_2+_1, a, b)`      | (1,3)   | `map((x,y)->y+x, a, b)`        |
+| `@_ func(a,__,b)`          | (4)     | `x->func(a,x,b)`               |
+| `@_ func(a,__2,b)`         | (4)     | `(x,y)->func(a,y,b)`           |
+| `@_ data \\|> map(_.f,__)` | (1,4,5) | `data \\|> (d->map(x->x.f,d))` |
 
-    @_ f1(ex1)  |>     f2(ex1)
-    @_(f1(ex1)) |>  @_(f2(ex1))
+# Extended help
 
-The placeholder `__` (and numbered versions `__1,__2,...`) may be used to
-expand the closure scope to the whole expression. That is, the following are
-equivalent:
+## Examples
 
-    @_ func(a,__)
-    x->func(a,x)
-
-# Examples
-
-`@_` can be very convenient for simple mapping operations in cases where
-broadcasting syntax is awkward. For example, to get the second last element of
-each array in a collection:
+`@_` can be used for simple mapping operations in cases where broadcasting
+syntax is awkward. For example, to get the second last element of each array in
+a collection:
 
 ```jldoctest
 julia> @_ map(_[end-1],  [[1,2,3], [4,5]])
@@ -130,7 +133,7 @@ julia> @_ map(_[end-1],  [[1,2,3], [4,5]])
  4
 ```
 
-If you need to repeat an argument more than once the numbered form can be
+If you need to repeat an argument more than once, the numbered form can be
 useful:
 
 ```jldoctest
@@ -154,8 +157,9 @@ julia> @_ filter(!startswith(_.x, "a"), data)
  (x = "c", y = 3)
 ```
 
-It's especially useful when combined with double underscore placeholders `__`
-and piping syntax. Think of `__` as the table, and `_` as an individual row:
+This is especially useful when combined with double underscore placeholders
+`__` and piping syntax. Think of `__` as the table, and `_` as an individual
+row:
 
 ```jldoctest
 julia> @_ data |>
