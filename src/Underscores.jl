@@ -2,7 +2,7 @@ module Underscores
 
 @doc let path = joinpath(dirname(@__DIR__), "README.md")
     include_dependency(path)
-    replace(read(path, String), "```julia" => "```jldoctest")
+    read(path, String)
 end Underscores
 
 export @_
@@ -27,7 +27,7 @@ function add_closures(ex, prefix, pattern)
     if ex isa Expr && (ex.head == :kw || ex.head == :parameters)
         return Expr(ex.head, map(e->add_closures(e,prefix,pattern), ex.args)...)
     end
-    plain_nargs = 0
+    plain_nargs = false
     numbered_nargs = 0
     body = _replacesyms(ex) do sym
         m = match(pattern, string(sym))
@@ -36,8 +36,8 @@ function add_closures(ex, prefix, pattern)
         else
             argnum_str = m[1]
             if isempty(argnum_str)
-                plain_nargs += 1
-                argnum = plain_nargs
+                plain_nargs = true
+                argnum = 1
             else
                 argnum = parse(Int, argnum_str)
                 numbered_nargs = max(numbered_nargs, argnum)
@@ -45,7 +45,7 @@ function add_closures(ex, prefix, pattern)
             Symbol(prefix, argnum)
         end
     end
-    if plain_nargs > 0 && numbered_nargs > 0
+    if plain_nargs && numbered_nargs > 0
         throw(ArgumentError("Cannot mix plain and numbered `$prefix` placeholders in `$ex`"))
     end
     nargs = max(plain_nargs, numbered_nargs)
@@ -96,15 +96,13 @@ Convert `ex1,ex2,...` into anonymous functions when they have `_` placeholders,
 and *pass them along* to `func`.
 
 The detailed rules are:
-1. The placeholder `_` expands to an anonymous function which is passed to the
-   outermost expression.
-2. When multiple `_` are present in a single sub-expression they become successive
-   arguments to the anonymous function.
-3. Numbered placeholders `_1,_2,...` may be used if you need to reorder, repeat
-   or omit arguments.
-4. The placeholder `__` (and numbered versions `__1,__2,...`) expands the
-   closure scope to the whole expression.
-5. Piping and composition chains with `|>,<|,∘` are treated as a special case
+1. Uses of the placeholder `_` expand to the single argument of an anonymous
+   function which is passed to the outermost expression.
+2. Numbered placeholders `_1,_2,...` may be used if you need more than one
+   argument. Numbers indicate position in the argument list.
+3. The double underscore placeholder `__` (and numbered versions `__1,__2,...`)
+   expands the closure scope to the whole expression.
+4. Piping and composition chains with `|>,<|,∘` are treated as a special case
    where the replacement recurses into sub-expressions.
 
 These rules imply the following equivalences
@@ -112,11 +110,11 @@ These rules imply the following equivalences
 | Expression                 |  Rules  | Meaning                        |
 |:-------------------------- |:------- |:------------------------------ |
 | `@_ map(_+1, a)`           | (1)     | `map(x->x+1, a)`               |
-| `@_ map(_+2^_, a, b)`      | (1,2)   | `map((x,y)->x+2^y, a, b)`      |
-| `@_ map(_2/_1, a, b)`      | (1,3)   | `map((x,y)->y/x, a, b)`        |
-| `@_ func(a,__,b)`          | (4)     | `x->func(a,x,b)`               |
-| `@_ func(a,__2,b)`         | (4)     | `(x,y)->func(a,y,b)`           |
-| `@_ data \\|> map(_.f,__)` | (1,4,5) | `data \\|> (d->map(x->x.f,d))` |
+| `@_ map(_^_, a, b)`        | (1)     | `map(x->x^x, a)`               |
+| `@_ map(_2/_1, a, b)`      | (1,2)   | `map((x,y)->y/x, a, b)`        |
+| `@_ func(a,__,b)`          | (3)     | `x->func(a,x,b)`               |
+| `@_ func(a,__2,b)`         | (3)     | `(x,y)->func(a,y,b)`           |
+| `@_ data \\|> map(_.f,__)` | (1,3,4) | `data \\|> (d->map(x->x.f,d))` |
 
 # Extended help
 
@@ -133,36 +131,26 @@ julia> @_ map(_[end-1],  [[1,2,3], [4,5]])
  4
 ```
 
-If you need to repeat an argument more than once, the numbered form can be
-useful:
+If you need to repeat an argument more than once, just use `_` multiple times:
 
 ```jldoctest
-julia> @_ map(_1^_1,  [1,2,3])
+julia> @_ map(_^_,  [1,2,3])
 3-element Array{Int64,1}:
   1
   4
  27
 ```
 
-For manipulating tabular data `@_` provides convenient syntax:
+For manipulating tabular data `@_` provides convenient syntax which is
+especially useful when combined with double underscore placeholders `__` and
+piping syntax. Think of `__` as the table, and `_` as an individual row:
 
 ```jldoctest
-julia> data = [(x="a", y=1),
-               (x="b", y=2),
-               (x="c", y=3)];
+julia> table = [(x="a", y=1),
+                (x="b", y=2),
+                (x="c", y=3)];
 
-julia> @_ filter(!startswith(_.x, "a"), data)
-2-element Array{NamedTuple{(:x, :y),Tuple{String,Int64}},1}:
- (x = "b", y = 2)
- (x = "c", y = 3)
-```
-
-This is especially useful when combined with double underscore placeholders
-`__` and piping syntax. Think of `__` as the table, and `_` as an individual
-row:
-
-```jldoctest
-julia> @_ data |>
+julia> @_ table |>
           filter(!startswith(_.x, "a"), __) |>
           map(_.y, __)
 2-element Array{Int64,1}:

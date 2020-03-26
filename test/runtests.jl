@@ -15,7 +15,7 @@ using Test
     @test data[2:3] == @_ filter(_.y >= 2, data)
 
     # Multiple args
-    @test [1,3] == @_ map(_+1-_, [1,2], [1,0])
+    @test [0,0] == @_ map(_-_, [1,2])
 
     # Use with piping and __
     @test [1] == @_ data |>
@@ -29,7 +29,7 @@ using Test
     @test [1] == (@_ map(_.y, __) ∘
                      filter(startswith(_.x, "a"), __))(data)
 
-    @test [0,0,0] == @_ data |> map(_.y + _, __, [-1,-2,-3])
+    @test [0,0,0] == @_ data |> map(_1.y + _2, __, [-1,-2,-3])
 
     # Use with piping and lazy versions of map and filter
     Filter(f) = x->filter(f,x)
@@ -62,9 +62,9 @@ end
     @test lower(:(f(_,a))) == cleanup!(:(f(((_1,)->_1), a)))
     @test lower(:(f(a,_))) == cleanup!(:(f(a, ((_1,)->_1))))
     @test lower(:(f(_,_))) == cleanup!(:(f(((_1,)->_1), ((_1,)->_1))))
-    @test lower(:(f(_+_))) == cleanup!(:(f(((_1,_2)->_1+_2))))
+    @test lower(:(f(g(_,_)))) == cleanup!(:(f(((_1,)->g(_1,_1)))))
     # __
-    @test lower(:(f(__,__))) == cleanup!(:((__1,__2)->f(__1, __2)))
+    @test lower(:(f(__,__))) == cleanup!(:((__1,)->f(__1, __1)))
 
     # Numbered arguments
     # _
