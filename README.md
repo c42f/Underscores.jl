@@ -4,12 +4,13 @@
 [![Dev Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://c42f.github.io/Underscores.jl/dev)
 [![Build Status](https://github.com/c42f/Underscores.jl/workflows/CI/badge.svg)](https://github.com/c42f/Underscores.jl/actions?query=workflow%3ACI)
 
-`Underscores` provides simple syntax for passing closures to functions by
+`Underscores` provides a macro `@_` for passing closures to functions by
 interpreting `_` *placeholders* as anonymous function arguments. For example
-`@_ map(_+1, xs)` to mean `map(x->x+1, xs)`.
+`@_ map(_+1, xs)` means `map(x->x+1, xs)`.
 
-This is helpful when you want to write anonymous functions succinctly without
-naming the arguments, for example in data processing pipelines such as
+`Underscores` is useful for writing anonymous functions succinctly and without
+naming the arguments. This is particular useful for data processing pipelines
+such as
 ```julia
 @_ people |> filter(_.age > 40, __) |> map(_.name, __)
 ```

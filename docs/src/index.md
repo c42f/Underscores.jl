@@ -1,11 +1,16 @@
 # Underscores.jl
 
-`Underscores` provides simple syntax for passing closures to functions by
-interpreting `_` *placeholders* as anonymous function arguments. For example
-`@_ map(_+1, xs)` to mean `map(x->x+1, xs)`.
+```@meta
+DocTestSetup = :(using Underscores)
+```
 
-This is helpful when you want to write anonymous functions succinctly without
-naming the arguments, for example in data processing pipelines such as
+`Underscores` provides a macro `@_` for passing closures to functions by
+interpreting `_` *placeholders* as anonymous function arguments. For example
+`@_ map(_+1, xs)` means `map(x->x+1, xs)`.
+
+`Underscores` is useful for writing anonymous functions succinctly and without
+naming the arguments. This is particular useful for data processing pipelines
+such as
 ```julia
 @_ people |> filter(_.age > 40, __) |> map(_.name, __)
 ```
@@ -15,9 +20,8 @@ naming the arguments, for example in data processing pipelines such as
 ### Basic use of `_`
 
 `@_` and `_` placeholders are for making functions *to pass to other
-functions*. This can be very convenient for simple uses of `map` in cases where
-broadcasting syntax is awkward. For example, to get the second last element of
-each array in a collection:
+functions*. For example, to get the second last element of each array in a
+collection, broadcasting syntax would be awkward. Instead we can use:
 
 ```jldoctest
 julia> @_ map(_[end-1],  [[1,2,3], [4,5]])
@@ -26,18 +30,21 @@ julia> @_ map(_[end-1],  [[1,2,3], [4,5]])
  4
 ```
 
-Repeated use of `_` creates functions with multiple arguments. For example,
+Repeated use of `_` refers to the argument of a single-argument anonymous
+function. To sum the last two elements of the arrays from the previous example:
 
 ```jldoctest
-julia> @_ map("X $(repeat(_,_))", ["a","b","c"], [1,2,3])
-3-element Array{String,1}:
- "X a"
- "X bb"
- "X ccc"
+julia> @_ map(_[end] + _[end-1],  [[1,2,3], [4,5]])
+2-element Array{Int64,1}:
+ 5
+ 9
 ```
 
-Numbered placeholders like `_1` can be useful when you need to repeat arguments
-or reorder them. For example,
+### Multiple arguments
+
+Multiple argument anonymous functions can be created with numbered placeholders
+like `_1` can be useful when you need to repeat arguments or reorder them. For
+example,
 
 ```jldoctest
 julia> @_ map("X $_2 $(repeat(_1,_2))", ["a","b","c"], [1,2,3])
@@ -49,10 +56,10 @@ julia> @_ map("X $_2 $(repeat(_1,_2))", ["a","b","c"], [1,2,3])
 
 ### Tabular data
 
-`@_` can be helpful for manipulating tabular data, especially when combined
-with piping. Let's filter a list of named tuples:
+`@_` is handy for manipulating tabular data. Let's filter a list of named
+tuples:
 
-```jldoctest
+```jldoctest tabular
 julia> table = [(x="a", y=1),
                 (x="b", y=2),
                 (x="c", y=3)];
@@ -63,11 +70,11 @@ julia> @_ filter(!startswith(_.x, "a"), table)
  (x = "c", y = 3)
 ```
 
-`@_` is especially useful when combined with double underscore placeholders
-`__` and piping syntax. In the following, think of `__` as the table, and `_`
-as an individual row:
+When combined with double underscore placeholders `__` and piping syntax this
+becomes particularly neat. In the following, think of `__` as the table, and
+`_` as an individual row:
 
-```jldoctest
+```jldoctest tabular
 julia> @_ table |>
           filter(!startswith(_.x, "a"), __) |>
           map(_.y, __)
@@ -75,6 +82,7 @@ julia> @_ table |>
  2
  3
 ```
+
 
 ## Reference
 
