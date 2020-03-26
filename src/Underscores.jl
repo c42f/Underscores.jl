@@ -39,6 +39,9 @@ function add_closures(ex, prefix, pattern)
                 plain_nargs = true
                 argnum = 1
             else
+                if !isdigit(argnum_str[1])
+                    argnum_str = map(c->c-'₀'+'0', argnum_str)
+                end
                 argnum = parse(Int, argnum_str)
                 numbered_nargs = max(numbered_nargs, argnum)
             end
@@ -56,8 +59,8 @@ function add_closures(ex, prefix, pattern)
     return :(($(argnames...),) -> $body)
 end
 
-replace_(ex)  = add_closures(ex, "_", r"^_([0-9]*)$")
-replace__(ex) = add_closures(ex, "__", r"^__([0-9]*)$")
+replace_(ex)  = add_closures(ex, "_", r"^_([0-9]*|[₀-₉]*)$")
+replace__(ex) = add_closures(ex, "__", r"^__([0-9]*|[₀-₉]*)$")
 
 # In principle this can be extended locally by a package for use within the
 # package and for prototyping purposes. However note that this will interact
@@ -98,8 +101,8 @@ and *pass them along* to `func`.
 The detailed rules are:
 1. Uses of the placeholder `_` expand to the single argument of an anonymous
    function which is passed to the outermost expression.
-2. Numbered placeholders `_1,_2,...` may be used if you need more than one
-   argument. Numbers indicate position in the argument list.
+2. Numbered placeholders `_1,_2,...` (or `_₁,_₂,...`) may be used if you need
+   more than one argument. Numbers indicate position in the argument list.
 3. The double underscore placeholder `__` (and numbered versions `__1,__2,...`)
    expands the closure scope to the whole expression.
 4. Piping and composition chains with `|>,<|,∘` are treated as a special case

@@ -76,6 +76,11 @@ end
     @test lower(:(f(__2))) == cleanup!(:((__1,__2)->f(__2)))
     @test lower(:(f(__2+__1))) == cleanup!(:((__1,__2)->f(__2+__1)))
 
+    # Cute subscript-numbered arguments
+    @test lower(:(f(_₁))) == cleanup!(:(f((_1,)->_1)))
+    @test lower(:(f(_₂))) == cleanup!(:(f((_1,_2)->_2)))
+    @test lower(:(f(__₁))) == cleanup!(:((__1,)->f(__1)))
+
     # Can't mix numbered and non-numbered placeholders
     @test_throws ArgumentError lower(:(f(_+_1)))
     @test_throws ArgumentError lower(:(f(__+__1)))
