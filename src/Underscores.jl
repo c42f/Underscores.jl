@@ -112,8 +112,8 @@ These rules imply the following equivalences
 | Expression                 |  Rules  | Meaning                        |
 |:-------------------------- |:------- |:------------------------------ |
 | `@_ map(_+1, a)`           | (1)     | `map(x->x+1, a)`               |
-| `@_ map(_+2^_, a)`         | (1,2)   | `map((x,y)->x+2^y, a)`         |
-| `@_ map(_2+_1, a, b)`      | (1,3)   | `map((x,y)->y+x, a, b)`        |
+| `@_ map(_+2^_, a, b)`      | (1,2)   | `map((x,y)->x+2^y, a, b)`      |
+| `@_ map(_2/_1, a, b)`      | (1,3)   | `map((x,y)->y/x, a, b)`        |
 | `@_ func(a,__,b)`          | (4)     | `x->func(a,x,b)`               |
 | `@_ func(a,__2,b)`         | (4)     | `(x,y)->func(a,y,b)`           |
 | `@_ data \\|> map(_.f,__)` | (1,4,5) | `data \\|> (d->map(x->x.f,d))` |
