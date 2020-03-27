@@ -49,7 +49,7 @@ function add_closures(ex, prefix, pattern)
         end
     end
     if plain_nargs && numbered_nargs > 0
-        throw(ArgumentError("Cannot mix plain and numbered `$prefix` placeholders in `$ex`"))
+        throw(ArgumentError("`@_` expansion: Cannot mix plain and numbered `$prefix` placeholders in `$ex`"))
     end
     nargs = max(plain_nargs, numbered_nargs)
     if nargs == 0
@@ -74,9 +74,33 @@ function lower_underscores(ex)
             return ex
         elseif ex.head == :call && length(ex.args) > 1 &&
                ex.args[1] in _pipeline_ops
-            # Special case for pipelining and composition operators
+            # Pipelining and composition delimits "outer" expression
             return Expr(ex.head, ex.args[1],
                         map(lower_underscores, ex.args[2:end])...)
+        elseif ex.head == :do
+            # don't expand the RHS - it's already a closure.
+            rhs = ex.args[2]
+            # `do` syntax delimits an "outer" expression; expand inside the
+            # left hand side.
+            lhs = lower_underscores(ex.args[1])
+            if lhs isa Expr && lhs.head == :call
+                # lhs had no __ placeholders - lower as a normal do block.
+                Expr(ex.head, lhs, rhs)
+            else
+                # lhs has a placeholder and it's now a closure. We could use it
+                # directly with a do block, but lets avoid one extra closure
+                # here by lowering to a let block instead.
+                @assert lhs isa Expr && lhs.head == :->
+                lhsargs = lhs.args[1].args
+                if length(lhsargs) != 1
+                    throw(ArgumentError("`@_` expansion: multiple `__` placeholders `$((lhsargs...,))` make no sense in `do` block form"))
+                end
+                quote
+                    let $(lhsargs[1]) = $rhs
+                        $(lhs.args[2])
+                    end
+                end
+            end
         elseif ex.head == :.       && length(ex.args) == 2 &&
                ex.args[2] isa Expr && ex.args[2].head == :tuple
             # Broadcast calls treated as normal calls for underscore lowering
