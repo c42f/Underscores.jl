@@ -119,5 +119,11 @@ end
     @test lower(:((f(_), g(_))))  == cleanup!(:(((_1,)->f(_1)), ((_1,)->g(_1))))
     @test lower(:([__])) == cleanup!(:((__1,)->[__1]))
     @test lower(:(__.x)) == cleanup!(:((__1,)->__1.x))
+
+    # do syntax is disabled for now because desired behaviour is not entirely
+    # clear. See #4
+    @test_throws ErrorException lower(:(f() do
+                                            body
+                                        end))
 end
 
