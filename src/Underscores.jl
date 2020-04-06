@@ -82,6 +82,8 @@ function lower_underscores(ex)
             # Broadcast calls treated as normal calls for underscore lowering
             return replace__(Expr(ex.head, replace_(ex.args[1]),
                                   Expr(:tuple, map(replace_, ex.args[2].args)...)))
+        elseif ex.head == :do
+            error("@_ expansion for `do` syntax is reserved")
         else
             # For other syntax, replace _ in args individually and __ over the
             # entire expression.
