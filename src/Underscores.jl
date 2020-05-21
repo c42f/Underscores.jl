@@ -115,7 +115,7 @@ These rules imply the following equivalences
 | Expression                 |  Rules  | Meaning                        |
 |:-------------------------- |:------- |:------------------------------ |
 | `@_ map(_+1, a)`           | (1)     | `map(x->x+1, a)`               |
-| `@_ map(_^_, a, b)`        | (1)     | `map(x->x^x, a)`               |
+| `@_ map(_^_, a)`           | (1)     | `map(x->x^x, a)`               |
 | `@_ map(_2/_1, a, b)`      | (1,2)   | `map((x,y)->y/x, a, b)`        |
 | `@_ func(a,__,b)`          | (3)     | `x->func(a,x,b)`               |
 | `@_ func(a,__2,b)`         | (3)     | `(x,y)->func(a,y,b)`           |
