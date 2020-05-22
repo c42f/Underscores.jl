@@ -14,6 +14,10 @@ using Test
     @test data[1:1] == @_ filter(startswith(_.x, "a"), data)
     @test data[2:3] == @_ filter(_.y >= 2, data)
 
+    # Use with indexing
+    @test data[1] == @_ filter(startswith(_.x, "a"), data)[end]
+    @test data[2:3] == @_ filter(_.y >= 2, data)[1:2]
+
     # Multiple args
     @test [0,0] == @_ map(_-_, [1,2])
 
@@ -30,6 +34,10 @@ using Test
                      filter(startswith(_.x, "a"), __))(data)
 
     @test [0,0,0] == @_ data |> map(_1.y + _2, __, [-1,-2,-3])
+
+    @test 3 == @_ [[1], [1,2], [1,2,3]] |>
+                                map(_[_[end]], __) |>
+                                __[end]
 
     # Use with piping and lazy versions of map and filter
     Filter(f) = x->filter(f,x)
