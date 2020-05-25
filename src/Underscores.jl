@@ -72,27 +72,22 @@ function lower_underscores(ex)
     if ex isa Expr
         if isquoted(ex)
             return ex
-
         elseif ex.head == :call && length(ex.args) > 1 &&
                ex.args[1] in _pipeline_ops
             # Special case for pipelining and composition operators
             return Expr(ex.head, ex.args[1],
                         map(lower_underscores, ex.args[2:end])...)
-
         elseif ex.head == :.       && length(ex.args) == 2 &&
                ex.args[2] isa Expr && ex.args[2].head == :tuple
             # Broadcast calls treated as normal calls for underscore lowering
             return replace__(Expr(ex.head, replace_(ex.args[1]),
                                   Expr(:tuple, map(replace_, ex.args[2].args)...)))
-
         elseif ex.head == :ref && ex.args[1] isa Expr
             # Indexing is not counted as outermost function
             return replace__(Expr(ex.head,
                 Expr(ex.args[1].head, map(replace_, ex.args[1].args)...), ex.args[2]))
-
         elseif ex.head == :do
             error("@_ expansion for `do` syntax is reserved")
-
         else
             # For other syntax, replace _ in args individually and __ over the
             # entire expression.
@@ -111,15 +106,13 @@ and *pass them along* to `func`.
 
 The detailed rules are:
 1. Uses of the placeholder `_` expand to the single argument of an anonymous
-   function which is passed to the outermost expression.
+   function which is passed to the outermost parenthesized expression.
 2. Numbered placeholders `_1,_2,...` (or `_₁,_₂,...`) may be used if you need
    more than one argument. Numbers indicate position in the argument list.
 3. The double underscore placeholder `__` (and numbered versions `__1,__2,...`)
    expands the closure scope to the whole expression.
 4. Piping and composition chains with `|>,<|,∘` are treated as a special case
    where the replacement recurses into sub-expressions.
-5. Indexing `[...]` is a similar special case as regards `_` (and `_1,_2,...`),
-   but does not affect `__`.
 
 These rules imply the following equivalences
 
@@ -131,9 +124,20 @@ These rules imply the following equivalences
 | `@_ func(a,__,b)`          | (3)     | `x->func(a,x,b)`               |
 | `@_ func(a,__2,b)`         | (3)     | `(x,y)->func(a,y,b)`           |
 | `@_ data \\|> map(_.f,__)` | (1,3,4) | `data \\|> (d->map(x->x.f,d))` |
-| `@_ dt \\|> map(_[2],__)[3]`| (1,3,4,5) | `dt \\|> (d->map(x->x[2],d)[3])` |
 
 # Extended help
+
+The scope of `_` is described in rule 1 as passing a function to the outermost
+"parenthesized expression", which includes ordinary function calls like `func`
+above. However, it excludes indexing: In `map(_^2,__)[3]`, it is `map` which
+receives an anonymous function, as this happens before the indexing is lowered
+to `getindex(...,3)`.
+
+The scope of `__` is unaffected by these concerns.
+
+| Expression                     | Meaning                            |
+|:------------------------------ |:---------------------------------- |
+| `@_ data \\|> map(_[2],__)[3]` | `data \\|> (d->map(x->x[2],d)[3])` |
 
 ## Examples
 
