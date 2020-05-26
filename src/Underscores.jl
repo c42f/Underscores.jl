@@ -106,7 +106,7 @@ and *pass them along* to `func`.
 
 The detailed rules are:
 1. Uses of the placeholder `_` expand to the single argument of an anonymous
-   function which is passed to the outermost parenthesized expression.
+   function which is passed to the outermost ordinary function call.
 2. Numbered placeholders `_1,_2,...` (or `_₁,_₂,...`) may be used if you need
    more than one argument. Numbers indicate position in the argument list.
 3. The double underscore placeholder `__` (and numbered versions `__1,__2,...`)
@@ -126,18 +126,6 @@ These rules imply the following equivalences
 | `@_ data \\|> map(_.f,__)` | (1,3,4) | `data \\|> (d->map(x->x.f,d))` |
 
 # Extended help
-
-The scope of `_` is described in rule 1 as passing a function to the outermost
-"parenthesized expression", which includes ordinary function calls like `func`
-above. However, it excludes indexing: In `map(_^2,__)[3]`, it is `map` which
-receives an anonymous function, as this happens before the indexing is lowered
-to `getindex(...,3)`.
-
-The scope of `__` is unaffected by these concerns.
-
-| Expression                     | Meaning                            |
-|:------------------------------ |:---------------------------------- |
-| `@_ data \\|> map(_[2],__)[3]` | `data \\|> (d->map(x->x[2],d)[3])` |
 
 ## Examples
 
@@ -178,6 +166,20 @@ julia> @_ table |>
  2
  3
 ```
+
+## Extraordinary functions
+
+The scope of `_` as described in rule 1 depends on "ordinary" function call.
+This excludes the following operations:
+
+* Square brackets: In `map(_^2,__)[3]`, it is `map` which receives an anonymous
+  function, as this happens before the indexing is lowered to `getindex(...,3)`.
+
+The scope of `__` is unaffected by these concerns.
+
+| Expression                       | Meaning                            |
+|:-------------------------------- |:---------------------------------- |
+| `@_ data \\|> map(_[2],__)[3]`   | `data \\|> (d->map(x->x[2],d)[3])` |
 """
 macro _(ex)
     esc(lower_underscores(ex))
