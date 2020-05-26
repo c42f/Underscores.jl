@@ -68,7 +68,10 @@ replace__(ex) = add_closures(ex, "__", r"^__([0-9]*|[₀-₉]*)$")
 # by storing a per-module _pipeline_ops in the module using @_.)
 const _pipeline_ops = [:|>, :<|, :∘]
 
-function lower_underscores(ex)
+const _square_bracket_ops = [:comprehension, :typed_comprehension, :generator,
+                             :vcat, :typed_vcat, :hcat, :typed_hcat, :row]
+
+function lower_underscores(ex, replace__=replace__)
     if ex isa Expr
         if isquoted(ex)
             return ex
@@ -77,6 +80,9 @@ function lower_underscores(ex)
             # Special case for pipelining and composition operators
             return Expr(ex.head, ex.args[1],
                         map(lower_underscores, ex.args[2:end])...)
+        elseif ex.head == :(=)
+            return replace__(Expr(ex.head, ex.args[1],
+                map(x -> lower_underscores(x, identity), ex.args[2:end])...))
         elseif ex.head == :.       && length(ex.args) == 2 &&
                ex.args[2] isa Expr && ex.args[2].head == :tuple
             # Broadcast calls treated as normal calls for underscore lowering
@@ -86,6 +92,9 @@ function lower_underscores(ex)
             # Indexing is not counted as outermost function
             return replace__(Expr(ex.head,
                 Expr(ex.args[1].head, map(replace_, ex.args[1].args)...), ex.args[2]))
+        elseif ex.head in _square_bracket_ops
+            return replace__(Expr(ex.head,
+                                  map(x -> lower_underscores(x, identity), ex.args)...))
         elseif ex.head == :do
             error("@_ expansion for `do` syntax is reserved")
         else
@@ -174,12 +183,16 @@ This excludes the following operations:
 
 * Square brackets: In `map(_^2,__)[3]`, it is `map` which receives an anonymous
   function, as this happens before the indexing is lowered to `getindex(...,3)`.
+  Similarly, generator expressions such as `[sum(_^2, x) for x in __]` are not
+  simply calls to `collect`, and constructions like `Int[sum(_^2, __) sum(_^3, __)]`
+  are not ordinary calls to `(hv)cat`.
 
 The scope of `__` is unaffected by these concerns.
 
 | Expression                       | Meaning                            |
 |:-------------------------------- |:---------------------------------- |
 | `@_ data \\|> map(_[2],__)[3]`   | `data \\|> (d->map(x->x[2],d)[3])` |
+| `@_ [sum(_*_, z) for z in a]`    | `[sum(x->x*x, z) for z in a]`      |
 """
 macro _(ex)
     esc(lower_underscores(ex))

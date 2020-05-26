@@ -48,6 +48,19 @@ using Test
                     Map(_.y)
 
     @test [1] == @_(Map(_.y) ∘ Filter(startswith(_.x, "a")))(data)
+
+    # Interpolation
+    @test ["1","a","2.0"] == @_ map("$_", [1,"a",2.0])
+
+    # Comprehensions
+    @test [[],[],[3]] == @_ [[1], [1,2], [1,2,3]] |>
+                                [filter(_>2, x) for x in __]
+    @test fill(:y,3) == @_ data |>
+                        Symbol[findfirst(_ isa Int, x) for x in __]
+
+    # Matrix construction
+    @test 4*ones(2,2) == @_ ones(4) |> [ sum(__)      sum(_^2, __)
+                                         sum(_^3, __) sum(_^4, __) ]
 end
 
 @testset "Underscores lowering" begin
