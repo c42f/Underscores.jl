@@ -18,6 +18,11 @@ using Test
     @test data[1] == @_ filter(startswith(_.x, "a"), data)[end]
     @test data[2:3] == @_ filter(_.y >= 2, data)[1:2]
 
+    # Operators
+    @test -2 == @_ -findfirst(_.x == "b", data)
+    @test [14] == @_ [1 2 3] * map(_.y, data)
+    @test (1:3)./3 == @_ data |> map(_.y, __) ./ length(__)
+
     # Multiple args
     @test [0,0] == @_ map(_-_, [1,2])
 

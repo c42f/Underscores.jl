@@ -71,6 +71,8 @@ const _pipeline_ops = [:|>, :<|, :∘]
 const _square_bracket_ops = [:comprehension, :typed_comprehension, :generator,
                              :vcat, :typed_vcat, :hcat, :typed_hcat, :row]
 
+_isoperator(x) = x isa Symbol && Base.isoperator(x)
+
 function lower_underscores(ex, replace__=replace__)
     if ex isa Expr
         if isquoted(ex)
@@ -80,7 +82,9 @@ function lower_underscores(ex, replace__=replace__)
             # Special case for pipelining and composition operators
             return Expr(ex.head, ex.args[1],
                         map(lower_underscores, ex.args[2:end])...)
-        elseif ex.head == :(=)
+        elseif ex.head == :(=) ||
+            (ex.head == :call && length(ex.args) > 1 && _isoperator(ex.args[1]))
+            # Other operators do not count as outermost function call
             return replace__(Expr(ex.head, ex.args[1],
                 map(x -> lower_underscores(x, identity), ex.args[2:end])...))
         elseif ex.head == :.       && length(ex.args) == 2 &&
@@ -187,12 +191,21 @@ This excludes the following operations:
   simply calls to `collect`, and constructions like `Int[sum(_^2, __) sum(_^3, __)]`
   are not ordinary calls to `(hv)cat`.
 
+* Infix operators: While `sum(_^2,x) / length(x)` can be written in prefix form
+  `/(...,...)`, the convention of `@_` is not to view this as an ordinary call,
+  and hence to pass the anonymous function to `sum` instead. This also applies to
+  broadcasted operators, such as `map(_^2,x) ./ length(x)`.
+
 The scope of `__` is unaffected by these concerns.
 
 | Expression                       | Meaning                            |
 |:-------------------------------- |:---------------------------------- |
 | `@_ data \\|> map(_[2],__)[3]`   | `data \\|> (d->map(x->x[2],d)[3])` |
 | `@_ [sum(_*_, z) for z in a]`    | `[sum(x->x*x, z) for z in a]`      |
+| `@_ sum(_^2,a) / length(a)`      | `sum(x->x^2,a) / length(a)`        |
+| `@_ /(sum(_^2,a), length(a))`    | The same, infix form is canonical. |
+| `@_ data \\|> filter(_>3,__).^2` | `data \\|> d->(filter(>(3),d).^2)` |
+
 """
 macro _(ex)
     esc(lower_underscores(ex))
