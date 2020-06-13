@@ -54,6 +54,21 @@ julia> @_ map("X $_2 $(repeat(_1,_2))", ["a","b","c"], [1,2,3])
  "X 3 ccc"
 ```
 
+### do blocks and double underscores
+
+The double underscore placeholder `__` can be used to pass the closure created
+by a `do` block to some function argument other than the first. Say we had a
+complex binary operator in a map-reduction. With a do block this could look
+like:
+
+```jldoctest
+@_ mapreduce(extrema, __, [[1,2],[3,4]]) do (min1,max1), (min2,max2)
+    
+end
+```
+
+"escapes an extra level", so `@_ f(__)` means 
+
 ### Tabular data
 
 `@_` is handy for manipulating tabular data. Let's filter a list of named
