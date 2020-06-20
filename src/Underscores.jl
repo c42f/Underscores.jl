@@ -69,9 +69,36 @@ replace__(ex) = add_closures(ex, "__", r"^__([0-9]*|[₀-₉]*)$")
 const _pipeline_ops = [:|>, :<|, :∘]
 
 const _square_bracket_ops = [:comprehension, :typed_comprehension, :generator,
-                             :vcat, :typed_vcat, :hcat, :typed_hcat, :row]
+                             :ref, :vcat, :typed_vcat, :hcat, :typed_hcat, :row]
 
 _isoperator(x) = x isa Symbol && Base.isoperator(x)
+
+function lower_inner(ex)
+    if ex isa Expr
+        if ex.head == :(=) ||
+            (ex.head == :call && length(ex.args) > 1 && _isoperator(ex.args[1]))
+            # Infix operators do not count as outermost function call
+            return Expr(ex.head, ex.args[1],
+                map(lower_inner, ex.args[2:end])...)
+        elseif ex.head in _square_bracket_ops
+            # Indexing & other square brackets not counted as outermost function
+            return Expr(ex.head, map(lower_inner, ex.args)...)
+        elseif ex.head == :. && length(ex.args) == 2 && ex.args[2] isa QuoteNode
+            # Getproperty also doesn't count
+            return Expr(ex.head, map(lower_inner, ex.args)...)
+        elseif ex.head == :. && length(ex.args) == 2 &&
+            ex.args[2] isa Expr && ex.args[2].head == :tuple
+            # Broadcast calls treated as normal calls for underscore lowering
+            return Expr(ex.head, replace_(ex.args[1]),
+                                  Expr(:tuple, map(replace_, ex.args[2].args)...))
+        else
+            # For other syntax, replace _ in args individually
+            return Expr(ex.head, map(replace_, ex.args)...)
+        end
+    else
+        return ex
+    end
+end
 
 function lower_underscores(ex, replace__=replace__)
     if ex isa Expr
@@ -82,29 +109,11 @@ function lower_underscores(ex, replace__=replace__)
             # Special case for pipelining and composition operators
             return Expr(ex.head, ex.args[1],
                         map(lower_underscores, ex.args[2:end])...)
-        elseif ex.head == :(=) ||
-            (ex.head == :call && length(ex.args) > 1 && _isoperator(ex.args[1]))
-            # Other operators do not count as outermost function call
-            return replace__(Expr(ex.head, ex.args[1],
-                map(x -> lower_underscores(x, identity), ex.args[2:end])...))
-        elseif ex.head == :.       && length(ex.args) == 2 &&
-               ex.args[2] isa Expr && ex.args[2].head == :tuple
-            # Broadcast calls treated as normal calls for underscore lowering
-            return replace__(Expr(ex.head, replace_(ex.args[1]),
-                                  Expr(:tuple, map(replace_, ex.args[2].args)...)))
-        elseif ex.head == :ref && ex.args[1] isa Expr
-            # Indexing is not counted as outermost function
-            return replace__(Expr(ex.head,
-                Expr(ex.args[1].head, map(replace_, ex.args[1].args)...), ex.args[2]))
-        elseif ex.head in _square_bracket_ops
-            return replace__(Expr(ex.head,
-                                  map(x -> lower_underscores(x, identity), ex.args)...))
         elseif ex.head == :do
             error("@_ expansion for `do` syntax is reserved")
         else
-            # For other syntax, replace _ in args individually and __ over the
-            # entire expression.
-            return replace__(Expr(ex.head, map(replace_, ex.args)...))
+            # For other syntax, replace __ over the entire expression
+            return replace__(lower_inner(ex))
         end
     else
         return ex
@@ -187,9 +196,11 @@ This excludes the following operations:
 
 * Square brackets: In `map(_^2,__)[3]`, it is `map` which receives an anonymous
   function, as this happens before the indexing is lowered to `getindex(...,3)`.
-  Similarly, generator expressions such as `[sum(_^2, x) for x in __]` are not
-  simply calls to `collect`, and constructions like `Int[sum(_^2, __) sum(_^3, __)]`
-  are not ordinary calls to `(hv)cat`.
+  Comprehensions (`collect`) and explicit matrix constructions (`hvcat`) are
+  treated similarly.
+
+* Broadcasting, and field access: In `f.(_,xs)` and `f(_,x).y` the function `f`
+  is the ordinary call, not the internal `broadcast` or `getproperty`.
 
 * Infix operators: While `sum(_^2,x) / length(x)` can be written in prefix form
   `/(...,...)`, the convention of `@_` is not to view this as an ordinary call,
@@ -202,6 +213,7 @@ The scope of `__` is unaffected by these concerns.
 |:-------------------------------- |:---------------------------------- |
 | `@_ data \\|> map(_[2],__)[3]`   | `data \\|> (d->map(x->x[2],d)[3])` |
 | `@_ [sum(_*_, z) for z in a]`    | `[sum(x->x*x, z) for z in a]`      |
+| `@_ sum(1+_^2, data).re`         | `sum(x->1+x^2, data).re`           |
 | `@_ sum(_^2,a) / length(a)`      | `sum(x->x^2,a) / length(a)`        |
 | `@_ /(sum(_^2,a), length(a))`    | The same, infix form is canonical. |
 | `@_ data \\|> filter(_>3,__).^2` | `data \\|> d->(filter(>(3),d).^2)` |
