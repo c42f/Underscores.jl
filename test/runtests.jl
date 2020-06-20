@@ -17,6 +17,7 @@ using Test
     # Use with indexing
     @test data[1] == @_ filter(startswith(_.x, "a"), data)[end]
     @test data[2:3] == @_ filter(_.y >= 2, data)[1:2]
+    @test data[2] == @_ data[findfirst(_.y >= 2, data)]
 
     # Operators
     @test -2 == @_ -findfirst(_.x == "b", data)
@@ -54,8 +55,17 @@ using Test
 
     @test [1] == @_(Map(_.y) ∘ Filter(startswith(_.x, "a")))(data)
 
+    # Getproperty
+    @test "a" == @_ data |> __[1].x
+    @test "b" == @_ (x="a", y=(z="b", t="c")) |> __.y.z
+    @test "c" == @_ (x="a", y=(z="b", t="c")) |> __.y[end]
+    @test -3 == @_ [1+2im,3,4+5im] |> sum(_^2, __).re
+
     # Interpolation
     @test ["1","a","2.0"] == @_ map("$_", [1,"a",2.0])
+
+    # Broadcasting
+    @_ [[1],[2],[3]] == data |> filter.(_ isa Int, collect.(__))
 
     # Comprehensions
     @test [[],[],[3]] == @_ [[1], [1,2], [1,2,3]] |>
