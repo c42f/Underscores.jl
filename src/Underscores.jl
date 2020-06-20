@@ -62,12 +62,6 @@ end
 replace_(ex)  = add_closures(ex, "_", r"^_([0-9]*|[₀-₉]*)$")
 replace__(ex) = add_closures(ex, "__", r"^__([0-9]*|[₀-₉]*)$")
 
-# In principle this can be extended locally by a package for use within the
-# package and for prototyping purposes. However note that this will interact
-# badly with precompilation. (If it makes sense we could fix this per-package
-# by storing a per-module _pipeline_ops in the module using @_.)
-const _pipeline_ops = [:|>, :<|, :∘]
-
 const _square_bracket_ops = [:comprehension, :typed_comprehension, :generator,
                              :ref, :vcat, :typed_vcat, :hcat, :typed_hcat, :row]
 
@@ -100,7 +94,13 @@ function lower_inner(ex)
     end
 end
 
-function lower_underscores(ex, replace__=replace__)
+# In principle this can be extended locally by a package for use within the
+# package and for prototyping purposes. However note that this will interact
+# badly with precompilation. (If it makes sense we could fix this per-package
+# by storing a per-module _pipeline_ops in the module using @_.)
+const _pipeline_ops = [:|>, :<|, :∘]
+
+function lower_underscores(ex)
     if ex isa Expr
         if isquoted(ex)
             return ex
