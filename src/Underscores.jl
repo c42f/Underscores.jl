@@ -77,6 +77,9 @@ function lower_inner(ex)
         elseif ex.head in _square_bracket_ops
             # Indexing & other square brackets not counted as outermost function
             return Expr(ex.head, map(lower_inner, ex.args)...)
+        elseif ex.head == :macrocall
+            # Indexing & other square brackets not counted as outermost function
+            return Expr(ex.head, map(lower_inner, ex.args)...)
         elseif ex.head == :. && length(ex.args) == 2 && ex.args[2] isa QuoteNode
             # Getproperty also doesn't count
             return Expr(ex.head, map(lower_inner, ex.args)...)
@@ -207,6 +210,8 @@ This excludes the following operations:
   and hence to pass the anonymous function to `sum` instead. This also applies to
   broadcasted operators, such as `map(_^2,x) ./ length(x)`.
 
+* Macros also aren't treated as function calls.
+
 The scope of `__` is unaffected by these concerns.
 
 | Expression                       | Meaning                            |
@@ -217,6 +222,8 @@ The scope of `__` is unaffected by these concerns.
 | `@_ sum(_^2,a) / length(a)`      | `sum(x->x^2,a) / length(a)`        |
 | `@_ /(sum(_^2,a), length(a))`    | The same, infix form is canonical. |
 | `@_ data \\|> filter(_>3,__).^2` | `data \\|> d->(filter(>(3),d).^2)` |
+| `@_ @view A[findall(_<2, A)]`    | `@view A[findall(x->x<2, A)]`      |
+| `@_ @view(A[findall(_<2, A)])`   | The same, brackets are optional.   |
 
 """
 macro _(ex)
