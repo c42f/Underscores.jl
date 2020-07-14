@@ -73,7 +73,7 @@ function lower_inner(ex)
             (ex.head == :call && length(ex.args) > 1 && _isoperator(ex.args[1]))
             # Infix operators do not count as outermost function call
             return Expr(ex.head, ex.args[1],
-                map(lower_inner, ex.args[2:end])...)
+                        map(lower_inner, ex.args[2:end])...)
         elseif ex.head in _square_bracket_ops
             # Indexing & other square brackets not counted as outermost function
             return Expr(ex.head, map(lower_inner, ex.args)...)
@@ -84,7 +84,7 @@ function lower_inner(ex)
             ex.args[2] isa Expr && ex.args[2].head == :tuple
             # Broadcast calls treated as normal calls for underscore lowering
             return Expr(ex.head, replace_(ex.args[1]),
-                                  Expr(:tuple, map(replace_, ex.args[2].args)...))
+                        Expr(:tuple, map(replace_, ex.args[2].args)...))
         else
             # For other syntax, replace _ in args individually
             return Expr(ex.head, map(replace_, ex.args)...)
@@ -110,7 +110,25 @@ function lower_underscores(ex)
             return Expr(ex.head, ex.args[1],
                         map(lower_underscores, ex.args[2:end])...)
         elseif ex.head == :do
-            error("@_ expansion for `do` syntax is reserved")
+            call = ex.args[1]
+            if call.head != :call
+                throw(ArgumentError("Expected call in do syntax"))
+            end
+            if any(x-> x === :_, call.args[2:end])
+                do_func = gensym(:do_func)
+                call = copy(call)
+                for i = 2:length(call.args)
+                    if call.args[i] === :_
+                        call.args[i] = do_func
+                    end
+                end
+                call = lower_inner(call)
+                return :(let $do_func = $(ex.args[2])
+                             $call
+                         end)
+            else
+                return Expr(:do, lower_inner(call), ex.args[2:end]...)
+            end
         else
             # For other syntax, replace __ over the entire expression
             return replace__(lower_inner(ex))

@@ -27,6 +27,16 @@ using Test
     # Multiple args
     @test [0,0] == @_ map(_-_, [1,2])
 
+    # do syntax: _ is treated as the slot for do, rather than the identity
+    @test ["aa","aa","bb","bb","cc","cc"] ==
+        @_ mapreduce(_^2, _, ["a", "b", "c"], init=[]) do x,y
+            vcat(x,y,y)
+        end
+    # When _ doesn't appear, it's just a normal do block
+    @test [1,4] == @_ map([1,2]) do x
+        x^2
+    end
+
     # Use with piping and __
     @test [1] == @_ data |>
                     filter(startswith(_.x, "a"), __) |>
@@ -79,8 +89,18 @@ using Test
 end
 
 @testset "Underscores lowering" begin
-    cleanup! = Base.remove_linenums!
-    lower(ex) = cleanup!(Underscores.lower_underscores(ex))
+    cleanup!(ex) = Base.remove_linenums!(ex)
+    cleanup!(ex, sym_rename::Pair) = _cleanup!(Base.remove_linenums!(ex), sym_rename)
+    function _cleanup!(ex, sym_rename)
+        if ex isa Symbol
+            occursin(sym_rename[1], String(ex)) ? sym_rename[2] : ex
+        elseif ex isa Expr
+            Expr(ex.head, map(e->_cleanup!(e,sym_rename), ex.args)...)
+        else
+            ex
+        end
+    end
+    lower(ex, args...) = cleanup!(Underscores.lower_underscores(ex), args...)
 
     # Simple cases
     # _
@@ -161,10 +181,23 @@ end
     @test lower(:([__])) == cleanup!(:((__1,)->[__1]))
     @test lower(:(__.x)) == cleanup!(:((__1,)->__1.x))
 
-    # do syntax is disabled for now because desired behaviour is not entirely
-    # clear. See #4
-    @test_throws ErrorException lower(:(f() do
-                                            body
-                                        end))
+    # do syntax
+    # basic case
+    @test lower(:(f(x,_) do ; body end), r"do_func"=>:do_func) ==
+        cleanup!(:(let do_func = ()->body
+                       f(x, do_func)
+                   end))
+    # do in second slot; first slot should be expanded too
+    @test lower(:(f(g(_),_) do ; body end), r"do_func"=>:do_func) ==
+        cleanup!(:(let do_func = ()->body
+                       f((_1,)->g(_1), do_func)
+                   end))
+    # do in second and third slots
+    @test lower(:(f(x,_,_) do ; body end), r"do_func"=>:do_func) ==
+        cleanup!(:(let do_func = ()->body
+                       f(x, do_func, do_func)
+                   end))
+    # do without _'s
+    @test lower(:(f() do ; body end)) == cleanup!(:(f() do ; body end))
 end
 
