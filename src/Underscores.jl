@@ -123,11 +123,11 @@ function lower_underscores(ex)
                     end
                 end
                 call = lower_inner(call)
-                return :(let $do_func = $(ex.args[2])
-                             $call
-                         end)
+                return replace__(:(let $do_func = $(ex.args[2])
+                                       $call
+                                   end))
             else
-                return Expr(:do, lower_inner(call), ex.args[2:end]...)
+                return replace__(Expr(:do, lower_inner(call), ex.args[2:end]...))
             end
         else
             # For other syntax, replace __ over the entire expression

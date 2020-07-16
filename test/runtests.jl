@@ -36,6 +36,12 @@ using Test
     @test [1,4] == @_ map([1,2]) do x
         x^2
     end
+    # Use with __. Yikes :-/
+    @test 14 == @_ function (x)
+        x^2
+    end |> mapreduce(__, _, [1,2,3]) do x,y
+        x+y
+    end
 
     # Use with piping and __
     @test [1] == @_ data |>
@@ -199,5 +205,7 @@ end
                    end))
     # do without _'s
     @test lower(:(f() do ; body end)) == cleanup!(:(f() do ; body end))
+    # do with __, without _'s
+    @test lower(:(f(__) do ; body end)) == cleanup!(:((__1,)->f(__1) do ; body end))
 end
 
