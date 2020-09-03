@@ -74,7 +74,7 @@ function lower_inner(ex)
             # Infix operators do not count as outermost function call
             return Expr(ex.head, ex.args[1],
                 map(lower_inner, ex.args[2:end])...)
-        elseif ex.head in _square_bracket_ops
+        elseif ex.head in _square_bracket_ops || ex.head == :if
             # Indexing & other square brackets not counted as outermost function
             return Expr(ex.head, map(lower_inner, ex.args)...)
         elseif ex.head == :. && length(ex.args) == 2 && ex.args[2] isa QuoteNode
