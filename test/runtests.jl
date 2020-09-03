@@ -28,9 +28,8 @@ using Test
     @test [0,0] == @_ map(_-_, [1,2])
 
     # Ternary
-    @test ["a","b","c"] == @_ any(_.y>2, data) ?
-                            map(_.x, data) :
-                            map(_.y, data)
+    @test ["a","b","c"] == @_ data |>
+        (any(_.y>2, __) ? map(_.x, __) : map(_.y, __))
 
     # Use with piping and __
     @test [1] == @_ data |>

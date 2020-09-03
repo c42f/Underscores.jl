@@ -207,6 +207,10 @@ This excludes the following operations:
   and hence to pass the anonymous function to `sum` instead. This also applies to
   broadcasted operators, such as `map(_^2,x) ./ length(x)`.
 
+* If statements, including the ternary operator. Note that this has higher
+  precedence than pipes: `data |> (any(_.x<0, __) ? abs.(__) : __) |> step`
+  needs these brackets.
+
 The scope of `__` is unaffected by these concerns.
 
 | Expression                       | Meaning                            |
@@ -217,6 +221,7 @@ The scope of `__` is unaffected by these concerns.
 | `@_ sum(_^2,a) / length(a)`      | `sum(x->x^2,a) / length(a)`        |
 | `@_ /(sum(_^2,a), length(a))`    | The same, infix form is canonical. |
 | `@_ data \\|> filter(_>3,__).^2` | `data \\|> d->(filter(>(3),d).^2)` |
+| `@_ any(_>3,xs) ? 0 : map(_,ys)` | `any(x->x>3,xs) ? 0 : map(y->y,ys)`|
 
 """
 macro _(ex)
