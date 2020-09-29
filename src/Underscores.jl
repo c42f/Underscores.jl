@@ -98,7 +98,7 @@ end
 # package and for prototyping purposes. However note that this will interact
 # badly with precompilation. (If it makes sense we could fix this per-package
 # by storing a per-module _pipeline_ops in the module using @_.)
-const _pipeline_ops = [:|>, :<|, :∘]
+const _pipeline_ops = [:|>, :<|, :∘, :.|>, :.<|]
 
 function lower_underscores(ex)
     if ex isa Expr

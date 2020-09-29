@@ -65,7 +65,10 @@ using Test
     @test ["1","a","2.0"] == @_ map("$_", [1,"a",2.0])
 
     # Broadcasting
-    @_ [[1],[2],[3]] == data |> filter.(_ isa Int, collect.(__))
+    @test [[1],[2],[3]] == @_ data |> filter.(_ isa Int, collect.(__))
+    @test sqrt.([3,2,1]) == @_ data .|> identity |>
+                        sort(__, by=_.x, rev=true) |>
+                        map(_.y, __) .|> sqrt
 
     # Comprehensions
     @test [[],[],[3]] == @_ [[1], [1,2], [1,2,3]] |>
