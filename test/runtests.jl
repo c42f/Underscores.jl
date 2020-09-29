@@ -66,6 +66,7 @@ using Test
 
     # Broadcasting
     @test [[1],[2],[3]] == @_ data |> filter.(_ isa Int, collect.(__))
+    @test [9,25] == @_ 2 |>  __ .+ (1:3)  .|>  __^2 |> filter(isodd(_), __)
     @test sqrt.([3,2,1]) == @_ data .|> identity |>
                         sort(__, by=_.x, rev=true) |>
                         map(_.y, __) .|> sqrt
@@ -138,10 +139,16 @@ end
           cleanup!(:(f((_1,)->_1) <|
                      g((_1,)->_1) <|
                      h((_1,)->_1)))
+    @test lower(:(f(_) .|> g(_) .|> h(_))) ==
+          cleanup!(:(f((_1,)->_1) .|>
+                     g((_1,)->_1) .|>
+                     h((_1,)->_1)))
     # __
     @test lower(:(f(_, __) |> g(_, __))) ==
         cleanup!(:(((__1,)->f((_1,)->_1, __1)) |>
                    ((__1,)->g((_1,)->_1, __1))))
+    @test lower(:(f(_, __) .|> g(__))) ==
+        cleanup!(:(((__1,)->f((_1,)->_1, __1)) .|> ((__1,)->g(__1))))
 
     # Keyword arguments
     @test lower(:(f(x, k=_+1))) == cleanup!(:(f(x, k=((_1,)->_1+1))))
