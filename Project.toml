@@ -1,7 +1,7 @@
 name = "Underscores"
 uuid = "d9a01c3f-67ce-4d8c-9b55-35f6e4050bb1"
 authors = ["Chris Foster <chris42f@gmail.com>"]
-version = "2.0.0"
+version = "3.0.0"
 
 [deps]
 
