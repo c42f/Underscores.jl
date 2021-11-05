@@ -157,7 +157,7 @@ a collection:
 
 ```jldoctest
 julia> @_ map(_[end-1],  [[1,2,3], [4,5]])
-2-element Array{Int64,1}:
+2-element Vector{Int64}:
  2
  4
 ```
@@ -166,7 +166,7 @@ If you need to repeat an argument more than once, just use `_` multiple times:
 
 ```jldoctest
 julia> @_ map(_^_,  [1,2,3])
-3-element Array{Int64,1}:
+3-element Vector{Int64}:
   1
   4
  27
@@ -184,7 +184,7 @@ julia> table = [(x="a", y=1),
 julia> @_ table |>
           filter(!startswith(_.x, "a"), __) |>
           map(_.y, __)
-2-element Array{Int64,1}:
+2-element Vector{Int64}:
  2
  3
 ```

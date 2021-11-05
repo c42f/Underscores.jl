@@ -25,7 +25,7 @@ collection, broadcasting syntax would be awkward. Instead we can use:
 
 ```jldoctest
 julia> @_ map(_[end-1],  [[1,2,3], [4,5]])
-2-element Array{Int64,1}:
+2-element Vector{Int64}:
  2
  4
 ```
@@ -35,7 +35,7 @@ function. To sum the last two elements of the arrays from the previous example:
 
 ```jldoctest
 julia> @_ map(_[end] + _[end-1],  [[1,2,3], [4,5]])
-2-element Array{Int64,1}:
+2-element Vector{Int64}:
  5
  9
 ```
@@ -48,7 +48,7 @@ example,
 
 ```jldoctest
 julia> @_ map("X $_2 $(repeat(_1,_2))", ["a","b","c"], [1,2,3])
-3-element Array{String,1}:
+3-element Vector{String}:
  "X 1 a"
  "X 2 bb"
  "X 3 ccc"
@@ -65,7 +65,7 @@ julia> table = [(x="a", y=1),
                 (x="c", y=3)];
 
 julia> @_ filter(!startswith(_.x, "a"), table)
-2-element Array{NamedTuple{(:x, :y),Tuple{String,Int64}},1}:
+2-element Vector{NamedTuple{(:x, :y), Tuple{String, Int64}}}:
  (x = "b", y = 2)
  (x = "c", y = 3)
 ```
@@ -78,7 +78,7 @@ becomes particularly neat. In the following, think of `__` as the table, and
 julia> @_ table |>
           filter(!startswith(_.x, "a"), __) |>
           map(_.y, __)
-2-element Array{Int64,1}:
+2-element Vector{Int64}:
  2
  3
 ```
