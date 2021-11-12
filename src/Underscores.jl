@@ -7,7 +7,7 @@ end Underscores
 
 export @_
 
-isquoted(ex) = ex isa Expr && ex.head in (:quote, :inert, :meta)
+isquoted(ex) = ex isa Expr && ex.head in (:inert, :meta)
 
 function _replacesyms(sym_map, ex)
     if ex isa Symbol
@@ -102,9 +102,7 @@ const _pipeline_ops = [:|>, :<|, :∘, :.|>, :.<|]
 
 function lower_underscores(ex)
     if ex isa Expr
-        if isquoted(ex)
-            return ex
-        elseif ex.head == :call && length(ex.args) > 1 &&
+        if ex.head == :call && length(ex.args) > 1 &&
                ex.args[1] in _pipeline_ops
             # Special case for pipelining and composition operators
             return Expr(ex.head, ex.args[1],
