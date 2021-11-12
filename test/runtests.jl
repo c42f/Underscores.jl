@@ -169,6 +169,9 @@ end
     @test lower(:(f(g(_[3]),h)[4])) == cleanup!(:(f((_1,)->g(_1[3]),h)[4]))
     @test lower(:(f(__)[5])) == cleanup!(:((__1,)->f(__1)[5]))
 
+    # Quote
+    @test lower(:(map(:(a[$_]), 1:4))) == cleanup!(:(map((_1,)->:(a[$_1]), 1:4)))
+
     # Random sample of other syntax
     @test lower(:([_]))  == cleanup!(:([(_1,)->_1]))
     @test lower(:((f(_), g(_))))  == cleanup!(:(((_1,)->f(_1)), ((_1,)->g(_1))))
